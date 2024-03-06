@@ -32,12 +32,19 @@ func CaptureContact() Contact {
 
 func CaptureJobs() []Job {
 	jobs := []Job{}
-	jobs = append(jobs, CaptureJob())
+	newJob := true
+
+	for newJob {
+		job, shouldAddNewJob := CaptureJob()
+		jobs = append(jobs, job)
+		newJob = shouldAddNewJob
+	}
 	return jobs
 }
 
-func CaptureJob() Job {
+func CaptureJob() (Job, bool) {
 	job := Job{}
+	shouldAddNewJob := false
 
 	form := huh.NewForm(
 		huh.NewGroup(
@@ -48,6 +55,12 @@ func CaptureJob() Job {
 			huh.NewText().
 				Title("Job Title").
 				Value(&job.JobTitle),
+
+			huh.NewConfirm().
+				Title("Would you like to add another job?").
+				Affirmative("Yes").
+				Negative("No").
+				Value(&shouldAddNewJob),
 		),
 	)
 
@@ -57,5 +70,5 @@ func CaptureJob() Job {
 		log.Fatal(err)
 	}
 
-	return job
+	return job, shouldAddNewJob
 }
