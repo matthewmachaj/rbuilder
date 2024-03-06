@@ -1,2 +1,2 @@
 main:
-	go build && go run main.go
+	go run *.go
