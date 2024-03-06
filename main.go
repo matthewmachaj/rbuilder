@@ -3,114 +3,50 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
-	"github.com/manifoldco/promptui"
-	"gopkg.in/yaml.v3"
+	"github.com/charmbracelet/huh"
 )
 
-const OUT_FILE = "history.yaml"
+func HuhForm(history *History) {
+	job := Job{}
 
-type History struct {
-	Contact Contact
-	Jobs    []Job
-}
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("First Name").
+				Value(&history.Contact.FirstName),
 
-type Contact struct {
-	FirstName string `yaml:"firstName"`
-	LastName  string `yaml:"lastName"`
-}
+			huh.NewText().
+				Title("Last Name").
+				Value(&history.Contact.LastName),
+		),
 
-type Job struct {
-	Employer  string
-	StartDate string `yaml:"endDate"`
-	EndDate   string `yaml:"startDate"`
-	JobTitle  string `yaml:"jobTitle"`
-}
+		huh.NewGroup(
+			huh.NewInput().
+				Title("Employer").
+				Value(&job.Employer),
 
-func checkError(err error) {
-	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		return
-	}
-}
+			huh.NewText().
+				Title("Job Title").
+				Value(&job.JobTitle),
+		),
+	)
 
-func encodeYaml(history History, out string) {
-	file, err := os.OpenFile(out, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	err := form.Run()
 
 	if err != nil {
-		log.Fatalf("error opening/creating file: %v", err)
-	}
-	defer file.Close()
-
-	enc := yaml.NewEncoder(file)
-
-	err = enc.Encode(history)
-	if err != nil {
-		log.Fatalf("error encoding: %v", err)
-	}
-}
-
-func gatherContact() Contact {
-	firstName := gatherText("First Name")
-	lastName := gatherText("Last Name")
-
-	contact := Contact{
-		firstName,
-		lastName,
+		log.Fatal(err)
 	}
 
-	return contact
-}
-
-func gatherJobs() []Job {
-	job := gatherJob()
-	jobs := []Job{
-		job,
-	}
-	return jobs
-}
-
-func gatherJob() Job {
-	employer := gatherText("Employer")
-	startDate := gatherText("Start Date")
-	endDate := gatherText("End Date")
-	jobTitle := gatherText("Job Title")
-
-	return Job{
-		Employer:  employer,
-		StartDate: startDate,
-		EndDate:   endDate,
-		JobTitle:  jobTitle,
-	}
-}
-
-func gatherText(label string) string {
-	prompt := promptui.Prompt{
-		Label: label,
-	}
-	text, err := prompt.Run()
-	checkError(err)
-
-	return text
+	history.Jobs = append(history.Jobs, job)
 }
 
 func main() {
-	// validate := func(input string) error {
-	// 	_, err := strconv.ParseFloat(input, 64)
-	// 	if err != nil {
-	// 		return errors.New("Invalid number")
-	// 	}
-	// 	return nil
-	// }
+	history := &History{}
+	HuhForm(history)
 
-	contact := gatherContact()
-	jobs := gatherJobs()
+	fmt.Println(history)
 
-	history := History{
-		Contact: contact,
-		Jobs:    jobs,
-	}
-
-	encodeYaml(history, OUT_FILE)
+	dao := YamlHistoryDao{}
+	dao.SaveHistory(*history)
 }
